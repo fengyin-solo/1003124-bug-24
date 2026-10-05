@@ -5,14 +5,31 @@
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.migrations import backfill_legacy_drills
 from app.routers import ROUTERS
 from app.store import store
 
-app = FastAPI(title="矿山安全监测管理平台", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """内存仓库就绪后，先把存量应急演练回填到新口径，再接请求。"""
+    result = backfill_legacy_drills()
+    if result["filled_assessment"] or result["created_todos"]:
+        print(
+            "[migrations] 应急演练存量回填："
+            f"空评估补「暂无评估」{result['filled_assessment']} 条，"
+            f"按演练日期补整改待办 {result['created_todos']} 条"
+        )
+    yield
+
+
+app = FastAPI(title="矿山安全监测管理平台", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

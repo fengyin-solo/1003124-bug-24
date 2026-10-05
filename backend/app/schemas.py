@@ -19,6 +19,9 @@ class ActionResult(BaseModel):
     ok: bool
     message: str
     entry: dict[str, Any] | None = None
+    # 落库失败时为 True：内容没丢，前端可以原样重试；业务校验不过时为 False。
+    retryable: bool = False
+    reason_code: str | None = None
 
 
 class EntryPayload(BaseModel):
