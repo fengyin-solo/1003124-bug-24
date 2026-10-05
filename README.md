@@ -69,6 +69,7 @@ npm run dev
 | 监测分站 | `monitorstation` | 监测分站 | 分站编号、分站名称、所在位置 |
 | 持证管理 | `certificate` | 持证人员 | 人员编号、姓名、证书类别 |
 | 应急演练 | `emergencydrill` | 演练记录 | 演练编号、演练主题、演练区域 |
+| 隐患整改跟踪 | `hazardrectify` | 整改待办 | 演练编号、复盘结论、整改状态 |
 
 ## 约定
 

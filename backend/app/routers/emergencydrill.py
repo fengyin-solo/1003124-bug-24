@@ -1,4 +1,4 @@
-"""应急演练接口：维护演练记录，覆盖组织演练、完成演练、复盘总结等动作。"""
+"""应急演练接口：维护演练记录，覆盖组织演练、完成演练、复盘总结、归档与改进措施保存。"""
 from __future__ import annotations
 
 from typing import Any
@@ -12,14 +12,14 @@ router = APIRouter(prefix="/api/emergencydrill", tags=["应急演练"])
 
 service = EmergencydrillService()
 
-LIST_FIELDS = ["演练编号", "演练主题", "演练区域", "参演人数", "演练日期", "演练评估", "改进措施", "演练状态"]
-STATUSES = ["待组织", "已组织", "已完成", "已复盘"]
+LIST_FIELDS = ["演练编号", "演练主题", "演练区域", "参演人数", "演练日期", "演练评估", "改进措施", "改进措施状态", "演练状态"]
+STATUSES = ["待组织", "已组织", "已完成", "已复盘", "已归档"]
 
 
 @router.get("", response_model=PageResult[dict])
 def list_entries(
     keyword: str | None = Query(default=None, description="按演练编号检索"),
-    status: str | None = Query(default=None, description="待组织、已组织、已完成、已复盘"),
+    status: str | None = Query(default=None, description="待组织、已组织、已完成、已复盘、已归档"),
     page: int = 1,
     size: int = 20,
 ) -> PageResult[dict]:
@@ -50,10 +50,19 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条演练记录执行组织演练、完成演练、复盘总结；不允许的动作会被拦下并说明原因。"""
+    """对单条演练记录执行组织演练、完成演练、复盘总结、归档；不允许的动作会被拦下并说明原因。"""
     action = str(payload.values.get("action") or "").strip()
     entry, message = service.run_action(entry_id, action)
     if entry is None:
+        return ActionResult(ok=False, message=message)
+    return ActionResult(ok=True, message=message, entry=entry)
+
+
+@router.post("/{entry_id}/improvement", response_model=ActionResult)
+def save_improvement(entry_id: int, payload: EntryPayload) -> ActionResult:
+    """保存改进措施：演练评估为空时按「暂无评估」存草稿；落库失败返回可读原因，前端可原样重试。"""
+    entry, message, ok = service.save_improvement(entry_id, payload.values)
+    if not ok:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
